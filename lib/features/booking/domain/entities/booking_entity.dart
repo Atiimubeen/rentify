@@ -6,6 +6,7 @@ class BookingEntity extends Equatable {
   final String id;
   final String propertyId;
   final String landlordId;
+  final String propertyTitle;
   final String tenantId;
   final String tenantName; // To show on landlord's dashboard
   final String tenantPhone; // To show on landlord's dashboard
@@ -17,6 +18,7 @@ class BookingEntity extends Equatable {
   const BookingEntity({
     required this.id,
     required this.propertyId,
+    required this.propertyTitle,
     required this.landlordId,
     required this.tenantId,
     required this.tenantName,

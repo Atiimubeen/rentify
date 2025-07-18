@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // <<< Yeh import add karein
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:rentify/core/error/exceptions.dart';
 import 'package:rentify/features/auth/data/models/user_model.dart';
@@ -18,8 +19,6 @@ abstract class AuthRemoteDataSource {
   Future<auth.User?> getCurrentUser();
 }
 
-// ... upar ka abstract class ka code waisa hi rahega ...
-
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
@@ -33,7 +32,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
        _firestore = firestore,
        _googleSignIn = googleSignIn;
 
-  // ... signUp aur signIn ke methods wese hi rahenge ...
   @override
   Future<UserModel> signUp({
     required String email,
@@ -51,11 +49,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Sign up failed, please try again.');
       }
 
+      // --- FCM Token Logic ---
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      // -------------------------
+
       final userModel = UserModel(
         uid: firebaseUser.uid,
         email: email,
         name: name,
         role: role,
+        fcmToken: fcmToken, // Token ko model mein add karein
       );
       await _firestore
           .collection('users')
@@ -83,6 +86,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Sign in failed, please try again.');
       }
 
+      // --- FCM Token Logic ---
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      // Firestore mein user ka token update karein
+      await _firestore.collection('users').doc(firebaseUser.uid).update({
+        'fcmToken': fcmToken,
+      });
+      // -------------------------
+
       final doc = await _firestore
           .collection('users')
           .doc(firebaseUser.uid)
@@ -107,14 +118,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-
-      // ----------- Documentation ke mutabiq THEEK KIYA HUA LOGIC -----------
-      // Sirf idToken ka istemal kiya ja raha hai
       final auth.AuthCredential credential = auth.GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
-      // ---------------------------------------------------------------------
-
       final userCredential = await _firebaseAuth.signInWithCredential(
         credential,
       );
@@ -123,21 +129,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Failed to sign in with Google.');
       }
 
+      // --- FCM Token Logic ---
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      // -------------------------
+
       final docRef = _firestore.collection('users').doc(firebaseUser.uid);
       final doc = await docRef.get();
 
       if (!doc.exists) {
+        // Naye user ke liye token save karein
         final newUser = UserModel(
           uid: firebaseUser.uid,
           name: firebaseUser.displayName,
           email: firebaseUser.email,
           photoUrl: firebaseUser.photoURL,
           role: null,
+          fcmToken: fcmToken,
         );
         await docRef.set(newUser.toFirestore());
         return newUser;
       } else {
-        return UserModel.fromFirestore(doc);
+        // Purane user ke liye token update karein
+        await docRef.update({'fcmToken': fcmToken});
+        // Updated data dobara fetch karein
+        final updatedDoc = await docRef.get();
+        return UserModel.fromFirestore(updatedDoc);
       }
     } on auth.FirebaseAuthException catch (e) {
       throw ServerException(e.message ?? 'An unknown Firebase error occurred.');
@@ -148,6 +164,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
+    // Optional: You can also delete the token on sign out
+    // final uid = _firebaseAuth.currentUser?.uid;
+    // if (uid != null) {
+    //   await _firestore.collection('users').doc(uid).update({'fcmToken': null});
+    // }
     await _googleSignIn.signOut();
     await _firebaseAuth.signOut();
   }

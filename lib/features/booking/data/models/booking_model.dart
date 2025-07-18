@@ -5,12 +5,14 @@ class BookingModel extends BookingEntity {
   const BookingModel({
     required super.id,
     required super.propertyId,
+    required super.propertyTitle,
     required super.landlordId,
     required super.tenantId,
     required super.tenantName,
     required super.tenantPhone,
     required super.requestDate,
     required super.status,
+
     super.visitDate,
     super.visitTime,
   });
@@ -20,6 +22,7 @@ class BookingModel extends BookingEntity {
     return BookingModel(
       id: doc.id,
       propertyId: data['propertyId'],
+      propertyTitle: data['propertyTitle'] ?? '',
       landlordId: data['landlordId'],
       tenantId: data['tenantId'],
       tenantName: data['tenantName'],

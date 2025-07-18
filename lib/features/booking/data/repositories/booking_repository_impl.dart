@@ -23,6 +23,7 @@ class BookingRepositoryImpl implements BookingRepository {
         final bookingModel = BookingModel(
           id: booking.id,
           propertyId: booking.propertyId,
+          propertyTitle: booking.propertyTitle,
           landlordId: booking.landlordId,
           tenantId: booking.tenantId,
           tenantName: booking.tenantName,

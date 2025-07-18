@@ -4,12 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart'
 import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
+  final String? fcmToken;
   const UserModel({
     required super.uid,
     super.email,
     super.name,
     super.photoUrl,
     super.role,
+    this.fcmToken,
   });
 
   // Factory to create a UserModel from a Firebase Auth User
@@ -26,6 +28,7 @@ class UserModel extends UserEntity {
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return UserModel(
+      fcmToken: data['fcmToken'],
       uid: doc.id,
       email: data['email'],
       name: data['name'],
@@ -36,7 +39,13 @@ class UserModel extends UserEntity {
 
   // Method to convert UserModel to a map for Firestore
   Map<String, dynamic> toFirestore() {
-    return {'email': email, 'name': name, 'photoUrl': photoUrl, 'role': role};
+    return {
+      'email': email,
+      'name': name,
+      'photoUrl': photoUrl,
+      'role': role,
+      'fcmToken': fcmToken,
+    };
   }
 
   // Method to create a copy with updated values
