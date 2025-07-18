@@ -28,6 +28,15 @@ import 'package:rentify/features/property/domain/usecases/add_property.dart';
 import 'package:rentify/features/property/domain/usecases/get_all_properties.dart';
 import 'package:rentify/features/property/domain/usecases/get_properties_by_landlord.dart';
 
+// --- Booking Property Imports -----
+import 'package:rentify/features/booking/data/datasources/booking_remote_data_source.dart';
+import 'package:rentify/features/booking/data/repositories/booking_repository_impl.dart';
+import 'package:rentify/features/booking/domain/repositories/booking_repository.dart';
+import 'package:rentify/features/booking/domain/usecases/get_booking_requests_for_landlord.dart';
+import 'package:rentify/features/booking/domain/usecases/request_booking.dart';
+import 'package:rentify/features/booking/domain/usecases/update_booking_status.dart';
+import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
+
 // Service Locator
 final sl = GetIt.instance;
 
@@ -112,5 +121,26 @@ Future<void> init() async {
   sl.registerLazySingleton(() => FirebaseStorage.instance); // Naya Code
   sl.registerLazySingleton(() => GoogleSignIn.instance);
   sl.registerLazySingleton(() => Connectivity());
-  sl.registerLazySingleton(() => const Uuid()); // Naya Code
+  sl.registerLazySingleton(() => const Uuid());
+
+  // Features Booking
+  sl.registerLazySingleton(() => RequestBooking(sl()));
+  sl.registerLazySingleton(() => GetBookingRequestsForLandlord(sl()));
+  sl.registerLazySingleton(() => UpdateBookingStatus(sl()));
+  sl.registerFactory(
+    () => BookingBloc(
+      requestBooking: sl(),
+      getBookingRequestsForLandlord: sl(),
+      updateBookingStatus: sl(),
+    ),
+  );
+  // Repository
+  sl.registerLazySingleton<BookingRepository>(
+    () => BookingRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<BookingRemoteDataSource>(
+    () => BookingRemoteDataSourceImpl(firestore: sl()),
+  );
 }
