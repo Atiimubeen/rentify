@@ -111,6 +111,7 @@ class PropertyDetailPage extends StatelessWidget {
                   final booking = BookingEntity(
                     id: const Uuid().v4(),
                     propertyId: property.id,
+                    propertyTitle: property.title,
                     landlordId: property.landlordId,
                     tenantId: authState.user.uid,
                     tenantName: authState.user.name ?? 'N/A',
