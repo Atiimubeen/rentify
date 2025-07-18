@@ -1,26 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // For number formatting
+import 'package:intl/intl.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
+import 'package:rentify/features/auth/presenatation/bloc/auth_state.dart';
+
+import 'package:rentify/features/booking/presentation/pages/my_bookings_page.dart';
+import 'package:rentify/features/profile/presentation/pages/profile_page.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
-import 'package:rentify/features/property/presentation/pages/property_detail_page.dart'; // <<< Import Detail Page
+import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
 
-class HomePage extends StatelessWidget {
+// HomePage ko StatefulWidget banaya gaya hai
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Screen khultay hi properties fetch karein
-    context.read<PropertyBloc>().add(FetchAllPropertiesEvent());
+  State<HomePage> createState() => _HomePageState();
+}
 
-    // Define a color scheme
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Data fetch karne ka event ab initState mein bheja ja raha hai
+    // Yeh sirf ek baar chalega jab screen banegi
+    context.read<PropertyBloc>().add(FetchAllPropertiesEvent());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Lighter background color
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
           'Rentify',
@@ -30,6 +44,34 @@ class HomePage extends StatelessWidget {
         foregroundColor: colorScheme.onPrimary,
         elevation: 2,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'My Profile',
+            onPressed: () {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(user: authState.user),
+                  ),
+                );
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmark_added),
+            tooltip: 'My Bookings',
+            onPressed: () {
+              final authState = context.read<AuthBloc>().state;
+              if (authState is Authenticated) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MyBookingsPage(tenant: authState.user),
+                  ),
+                );
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign Out',
@@ -41,20 +83,8 @@ class HomePage extends StatelessWidget {
       ),
       body: BlocBuilder<PropertyBloc, PropertyState>(
         builder: (context, state) {
-          if (state is PropertyLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
           if (state is PropertyError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Error: ${state.message}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colorScheme.error),
-                ),
-              ),
-            );
+            return Center(child: Text('Error: ${state.message}'));
           }
           if (state is PropertiesLoaded) {
             if (state.properties.isEmpty) {
@@ -88,42 +118,38 @@ class HomePage extends StatelessWidget {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
-                      // Using InkWell for tap effect
                       onTap: () {
-                        // --- YEH CODE ADD HUA HAI ---
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) =>
                                 PropertyDetailPage(property: property),
                           ),
                         );
-                        // ---------------------------------
                       },
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // --- Image ---
                           AspectRatio(
                             aspectRatio: 16 / 9,
                             child: property.imageUrls.isNotEmpty
                                 ? Image.network(
                                     property.imageUrls.first,
                                     fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, progress) {
-                                      return progress == null
-                                          ? child
-                                          : const Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                        Icons.broken_image,
-                                        size: 40,
-                                        color: Colors.grey,
-                                      );
-                                    },
+                                    loadingBuilder:
+                                        (context, child, progress) =>
+                                            progress == null
+                                            ? child
+                                            : const Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                              Icons.broken_image,
+                                              size: 40,
+                                              color: Colors.grey,
+                                            ),
                                   )
                                 : Container(
                                     color: Colors.grey[300],
@@ -134,7 +160,6 @@ class HomePage extends StatelessWidget {
                                     ),
                                   ),
                           ),
-                          // --- Details ---
                           Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Column(
@@ -202,7 +227,8 @@ class HomePage extends StatelessWidget {
               ),
             );
           }
-          return const Center(child: Text('Welcome! Loading properties...'));
+          // For Initial and Loading states
+          return const Center(child: CircularProgressIndicator());
         },
       ),
     );

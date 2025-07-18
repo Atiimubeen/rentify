@@ -5,8 +5,8 @@ enum BookingStatus { pending, accepted, rejected }
 class BookingEntity extends Equatable {
   final String id;
   final String propertyId;
-  final String landlordId;
   final String propertyTitle;
+  final String landlordId;
   final String tenantId;
   final String tenantName; // To show on landlord's dashboard
   final String tenantPhone; // To show on landlord's dashboard
@@ -33,9 +33,14 @@ class BookingEntity extends Equatable {
   List<Object?> get props => [
     id,
     propertyId,
+    propertyTitle, // <<< YEH LINE MISSING THI
     landlordId,
     tenantId,
+    tenantName,
+    tenantPhone,
     requestDate,
     status,
+    visitDate,
+    visitTime,
   ];
 }

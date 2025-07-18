@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // Naya import
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
+import 'package:rentify/features/chat/data/datasources/chat_remote_data_source.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:uuid/uuid.dart'; // Naya import
 
@@ -37,6 +38,26 @@ import 'package:rentify/features/booking/domain/usecases/request_booking.dart';
 import 'package:rentify/features/booking/domain/usecases/update_booking_status.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 
+// Chat Screen
+
+import 'package:rentify/features/chat/data/repositories/chat_repository_impl.dart';
+import 'package:rentify/features/chat/domain/repositories/chat_repository.dart';
+import 'package:rentify/features/chat/domain/usecases/get_messages.dart';
+import 'package:rentify/features/chat/domain/usecases/send_message.dart';
+import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
+
+//
+import 'package:rentify/features/booking/domain/usecases/get_booking_requests_for_tenant.dart';
+
+// --- Profile Feature Imports (Naya Code) ---
+import 'package:rentify/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:rentify/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:rentify/features/profile/domain/repositories/profile_repository.dart';
+import 'package:rentify/features/profile/domain/usecases/get_user_profile.dart';
+import 'package:rentify/features/profile/domain/usecases/update_user_profile.dart';
+import 'package:rentify/features/profile/domain/usecases/upload_profile_picture.dart';
+import 'package:rentify/features/profile/presentation/bloc/profile_bloc.dart';
+
 // Service Locator
 final sl = GetIt.instance;
 
@@ -48,10 +69,41 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddProperty(sl()));
   sl.registerLazySingleton(() => GetAllProperties(sl()));
   sl.registerLazySingleton(() => GetPropertiesByLandlord(sl()));
-
+  sl.registerLazySingleton(() => GetBookingRequestsForTenant(sl()));
   // Repository
   sl.registerLazySingleton<PropertyRepository>(
     () => PropertyRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+  sl.registerLazySingleton(() => GetUserProfile(sl()));
+  sl.registerLazySingleton(() => UpdateUserProfile(sl()));
+  sl.registerLazySingleton(() => UploadProfilePicture(sl()));
+  sl.registerFactory(
+    () => ProfileBloc(
+      getUserProfile: sl(),
+      updateUserProfile: sl(),
+      uploadProfilePicture: sl(),
+    ),
+  );
+  // Repository
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(firestore: sl(), storage: sl()),
+  );
+  sl.registerLazySingleton(() => SendMessage(sl()));
+  sl.registerLazySingleton(() => GetMessages(sl()));
+  sl.registerFactory(() => ChatBloc(sendMessage: sl(), getMessages: sl()));
+  // Repository
+  sl.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(firestore: sl()),
   );
 
   // Data sources
@@ -131,6 +183,7 @@ Future<void> init() async {
     () => BookingBloc(
       requestBooking: sl(),
       getBookingRequestsForLandlord: sl(),
+      getBookingRequestsForTenant: sl(),
       updateBookingStatus: sl(),
     ),
   );

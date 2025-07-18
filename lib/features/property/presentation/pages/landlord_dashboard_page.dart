@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
+import 'package:rentify/features/profile/presentation/pages/profile_page.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
@@ -22,6 +23,16 @@ class LandlordDashboardPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('My Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'My Profile',
+            onPressed: () {
+              // LandlordDashboardPage mein 'user' pehle se mojood hai
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ProfilePage(user: user)),
+              );
+            },
+          ),
           // --- YEH NAYA BUTTON ADD HUA HAI ---
           IconButton(
             icon: const Icon(Icons.notifications),

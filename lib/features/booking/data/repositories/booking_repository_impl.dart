@@ -78,11 +78,22 @@ class BookingRepositoryImpl implements BookingRepository {
     }
   }
 
-  // We haven't implemented this in the data source yet, but here's how it would look
+  // --- YEH METHOD AB MUKAMMAL HAI ---
   @override
   Future<Either<Failure, List<BookingEntity>>> getBookingRequestsForTenant(
     String tenantId,
   ) async {
-    return Left(ServerFailure('This feature is not implemented yet.'));
+    if (await networkInfo.isConnected) {
+      try {
+        final bookings = await remoteDataSource.getBookingRequestsForTenant(
+          tenantId,
+        );
+        return Right(bookings);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ServerFailure('No internet connection.'));
+    }
   }
 }

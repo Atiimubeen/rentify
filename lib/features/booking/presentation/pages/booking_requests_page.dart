@@ -29,6 +29,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Requests')),
       body: BlocConsumer<BookingBloc, BookingState>(
+        // Listener ab bohat simple hai, sirf message dikhata hai
         listener: (context, state) {
           if (state is BookingStatusUpdated) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -37,7 +38,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 backgroundColor: Colors.blue,
               ),
             );
-            // BLoC ab khud hi list refresh kar dega, yahan se event bhejne ki zaroorat nahi
           } else if (state is BookingError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -99,6 +99,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
               ),
             );
           }
+          // Baaki sab states ke liye (Initial, Loading)
           return const Center(child: CircularProgressIndicator());
         },
       ),
@@ -106,7 +107,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
   }
 
   Widget _buildStatusSection(BuildContext context, BookingEntity booking) {
-    // Note: Hum ab 'widget.landlord' use karengy kyunke hum StatefulWidget mein hain
     if (booking.status == BookingStatus.pending) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -117,8 +117,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 UpdateBookingStatusEvent(
                   bookingId: booking.id,
                   newStatus: BookingStatus.rejected,
-                  landlordId:
-                      widget.landlord.uid, // <<< YEH LINE THEEK KI GAYI HAI
+                  landlordId: widget.landlord.uid, // landlordId pass karein
                 ),
               );
             },
@@ -131,8 +130,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 UpdateBookingStatusEvent(
                   bookingId: booking.id,
                   newStatus: BookingStatus.accepted,
-                  landlordId:
-                      widget.landlord.uid, // <<< YEH LINE THEEK KI GAYI HAI
+                  landlordId: widget.landlord.uid, // landlordId pass karein
                 ),
               );
             },
