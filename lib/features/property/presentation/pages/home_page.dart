@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart'; // For number formatting
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
-
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
+import 'package:rentify/features/property/presentation/pages/property_detail_page.dart'; // <<< Import Detail Page
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -86,101 +86,116 @@ class HomePage extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    clipBehavior: Clip
-                        .antiAlias, // Ensures the image respects the rounded corners
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // --- Image ---
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: property.imageUrls.isNotEmpty
-                              ? Image.network(
-                                  property.imageUrls.first,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, progress) {
-                                    return progress == null
-                                        ? child
-                                        : const Center(
-                                            child: CircularProgressIndicator(),
-                                          );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(
-                                      Icons.broken_image,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.house_rounded,
-                                    size: 60,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                        // --- Details ---
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                property.title,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on,
-                                    size: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      property.address,
-                                      style: TextStyle(color: Colors.grey[700]),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              const Divider(),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    formatter.format(property.rent),
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${property.bedrooms} Beds | ${property.bathrooms} Baths',
-                                    style: TextStyle(color: Colors.grey[800]),
-                                  ),
-                                ],
-                              ),
-                            ],
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      // Using InkWell for tap effect
+                      onTap: () {
+                        // --- YEH CODE ADD HUA HAI ---
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                PropertyDetailPage(property: property),
                           ),
-                        ),
-                      ],
+                        );
+                        // ---------------------------------
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // --- Image ---
+                          AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: property.imageUrls.isNotEmpty
+                                ? Image.network(
+                                    property.imageUrls.first,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, progress) {
+                                      return progress == null
+                                          ? child
+                                          : const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.broken_image,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      );
+                                    },
+                                  )
+                                : Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.house_rounded,
+                                      size: 60,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                          // --- Details ---
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  property.title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      size: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        property.address,
+                                        style: TextStyle(
+                                          color: Colors.grey[700],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                const Divider(),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      formatter.format(property.rent),
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${property.bedrooms} Beds | ${property.bathrooms} Baths',
+                                      style: TextStyle(color: Colors.grey[800]),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

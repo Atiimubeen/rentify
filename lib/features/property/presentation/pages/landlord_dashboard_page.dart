@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
-
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
-import 'package:rentify/features/property/presentation/pages/add_property_page.dart'; // <<< YEH IMPORT ADD KAREIN
+import 'package:rentify/features/property/presentation/pages/add_property_page.dart';
+import 'package:rentify/features/property/presentation/pages/booking_requests_page.dart';
 
 class LandlordDashboardPage extends StatelessWidget {
   final UserEntity user;
@@ -20,10 +20,24 @@ class LandlordDashboardPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Properties'),
+        title: const Text('My Dashboard'),
         actions: [
+          // --- YEH NAYA BUTTON ADD HUA HAI ---
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            tooltip: 'Booking Requests',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BookingRequestsPage(landlord: user),
+                ),
+              );
+            },
+          ),
+          // ------------------------------------
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
             onPressed: () {
               context.read<AuthBloc>().add(SignOutEvent());
             },
@@ -36,6 +50,12 @@ class LandlordDashboardPage extends StatelessWidget {
           if (state is PropertyAdded) {
             context.read<PropertyBloc>().add(
               FetchLandlordPropertiesEvent(user.uid),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Property list updated!'),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         },
@@ -81,7 +101,7 @@ class LandlordDashboardPage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // --- YAHAN GHALTI THEEK KI GAYI HAI ---
+          // AddPropertyPage par navigate karein
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => AddPropertyPage(landlordId: user.uid),

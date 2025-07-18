@@ -5,6 +5,7 @@ import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_state.dart';
 import 'package:rentify/features/auth/presenatation/pages/sign_in_page.dart';
+import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/pages/home_page.dart';
 import 'package:rentify/features/property/presentation/pages/landlord_dashboard_page.dart';
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
           create: (_) => di.sl<AuthBloc>()..add(CheckAuthStatusEvent()),
         ),
         BlocProvider(create: (_) => di.sl<PropertyBloc>()),
+        BlocProvider(create: (_) => di.sl<BookingBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
