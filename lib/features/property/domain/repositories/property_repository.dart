@@ -4,6 +4,8 @@ import 'package:rentify/core/error/failure.dart';
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 
 abstract class PropertyRepository {
+  Future<Either<Failure, void>> deleteProperty(String propertyId);
+
   // Landlord ke liye: Nai property add karna
   Future<Either<Failure, void>> addProperty({
     required PropertyEntity property,

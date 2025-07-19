@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:rentify/core/error/exceptions.dart';
 import 'package:rentify/core/error/failure.dart';
@@ -7,7 +8,6 @@ import 'package:rentify/features/property/data/datasources/property_remote_data_
 import 'package:rentify/features/property/data/models/property_model.dart';
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/domain/repositories/property_repository.dart';
-import 'package:rentify/features/property/domain/usecases/get_properties_by_landlord.dart';
 
 class PropertyRepositoryImpl implements PropertyRepository {
   final PropertyRemoteDataSource remoteDataSource;
@@ -25,8 +25,6 @@ class PropertyRepositoryImpl implements PropertyRepository {
   }) async {
     if (await networkInfo.isConnected) {
       try {
-        // We need to cast the PropertyEntity to a PropertyModel to pass it to the data source.
-        // The ID can be temporary as Firestore will generate a new one.
         final propertyModel = PropertyModel(
           id: property.id,
           landlordId: property.landlordId,
@@ -37,12 +35,12 @@ class PropertyRepositoryImpl implements PropertyRepository {
           sizeSqft: property.sizeSqft,
           bedrooms: property.bedrooms,
           bathrooms: property.bathrooms,
-          imageUrls: property.imageUrls, // Will be replaced by datasource
+          imageUrls: property.imageUrls,
           isAvailable: property.isAvailable,
           postedDate: property.postedDate,
         );
         await remoteDataSource.addProperty(propertyModel, images);
-        return const Right(null); // Use Right(null) for void success
+        return const Right(null);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
@@ -56,9 +54,7 @@ class PropertyRepositoryImpl implements PropertyRepository {
     if (await networkInfo.isConnected) {
       try {
         final properties = await remoteDataSource.getAllProperties();
-        return Right(
-          properties,
-        ); // The models are subtypes of entities, so this is fine.
+        return Right(properties);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
@@ -71,25 +67,27 @@ class PropertyRepositoryImpl implements PropertyRepository {
   Future<Either<Failure, List<PropertyEntity>>> getPropertiesByLandlord(
     String landlordId,
   ) async {
-    // Note: The remote data source doesn't have a method for this yet.
-    // We would need to add a 'getPropertiesByLandlord' method to the data source
-    // that queries Firestore with a 'where' clause on 'landlordId'.
-    // For now, we can return an empty list or a failure.
-    return Left(ServerFailure('This feature is not yet implemented.'));
-  }
-  // ... addProperty aur getAllProperties ke methods wese hi rahenge ...
-
-  @override
-  Future<Either<Failure, List<PropertyEntity>>> GetPropertiesByLandlord(
-    String landlordId,
-  ) async {
-    // --- IS METHOD KA CODE UPDATE KAREIN ---
     if (await networkInfo.isConnected) {
       try {
         final properties = await remoteDataSource.getPropertiesByLandlord(
           landlordId,
         );
         return Right(properties);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ServerFailure('No internet connection.'));
+    }
+  }
+
+  // --- YEH NAYA METHOD ADD HUA HAI ---
+  @override
+  Future<Either<Failure, void>> deleteProperty(String propertyId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.deleteProperty(propertyId);
+        return const Right(null);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }

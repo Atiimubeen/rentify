@@ -12,6 +12,12 @@ abstract class PropertyEvent extends Equatable {
 // Saari properties fetch karne ke liye
 class FetchAllPropertiesEvent extends PropertyEvent {}
 
+// Landlord ki properties fetch karne ke liye
+class FetchLandlordPropertiesEvent extends PropertyEvent {
+  final String landlordId;
+  const FetchLandlordPropertiesEvent(this.landlordId);
+}
+
 // Nai property add karne ke liye
 class AddNewPropertyEvent extends PropertyEvent {
   final PropertyEntity property;
@@ -22,14 +28,18 @@ class AddNewPropertyEvent extends PropertyEvent {
   @override
   List<Object> get props => [property, images];
 }
-// ... baaki events wese hi rahenge ...
 
-// Landlord ki properties fetch karne ke liye
-class FetchLandlordPropertiesEvent extends PropertyEvent {
-  final String landlordId;
+// --- YEH NAYA EVENT ADD HUA HAI ---
+// Property delete karne ke liye
+class DeletePropertyEvent extends PropertyEvent {
+  final String propertyId;
+  final String landlordId; // List refresh karne ke liye
 
-  const FetchLandlordPropertiesEvent(this.landlordId);
+  const DeletePropertyEvent({
+    required this.propertyId,
+    required this.landlordId,
+  });
 
   @override
-  List<Object> get props => [landlordId];
+  List<Object> get props => [propertyId, landlordId];
 }

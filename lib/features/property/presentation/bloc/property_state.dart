@@ -14,6 +14,8 @@ class PropertyInitial extends PropertyState {}
 // Jab data load ho raha ho
 class PropertyLoading extends PropertyState {}
 
+class PropertyDeleted extends PropertyState {}
+
 // Jab properties successfully load ho jayein
 class PropertiesLoaded extends PropertyState {
   final List<PropertyEntity> properties;

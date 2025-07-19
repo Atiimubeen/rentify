@@ -11,6 +11,7 @@ abstract class PropertyRemoteDataSource {
   Future<List<PropertyModel>> getAllProperties();
   // Method to fetch properties for a specific landlord
   Future<List<PropertyModel>> getPropertiesByLandlord(String landlordId);
+  Future<void> deleteProperty(String propertyId);
 }
 
 // --- Implementation of the data source ---
@@ -24,6 +25,14 @@ class PropertyRemoteDataSourceImpl implements PropertyRemoteDataSource {
     required this.storage,
     required this.uuid,
   });
+  @override
+  Future<void> deleteProperty(String propertyId) async {
+    try {
+      await firestore.collection('properties').doc(propertyId).delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(e.message ?? 'Failed to delete property.');
+    }
+  }
 
   @override
   Future<void> addProperty(PropertyModel property, List<File> images) async {

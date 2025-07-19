@@ -156,7 +156,8 @@ Future<void> init() async {
     () => PropertyBloc(
       addProperty: sl(),
       getAllProperties: sl(),
-      getPropertiesByLandlord: sl(), // --- YEH LINE ADD KAREIN ---
+      getPropertiesByLandlord: sl(),
+      deleteProperty: sl(), // --- YEH LINE ADD KAREIN ---
     ),
   );
   // ...
