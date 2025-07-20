@@ -6,31 +6,18 @@ import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 abstract class BookingRemoteDataSource {
   Future<void> requestBooking(BookingModel booking);
   Future<List<BookingModel>> getBookingRequestsForLandlord(String landlordId);
-  Future<void> updateBookingStatus(String bookingId, BookingStatus newStatus);
   Future<List<BookingModel>> getBookingRequestsForTenant(String tenantId);
+  Future<void> updateBookingStatus(String bookingId, BookingStatus newStatus);
+  // --- YEH NAYA METHOD ADD HUA HAI ---
+  Future<void> cancelBooking(String bookingId);
 }
 
 class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   final FirebaseFirestore firestore;
 
   BookingRemoteDataSourceImpl({required this.firestore});
-  Future<List<BookingModel>> getBookingRequestsForTenant(
-    String tenantId,
-  ) async {
-    try {
-      final snapshot = await firestore
-          .collection('bookings')
-          .where('tenantId', isEqualTo: tenantId)
-          .orderBy('requestDate', descending: true)
-          .get();
-      return snapshot.docs
-          .map((doc) => BookingModel.fromFirestore(doc))
-          .toList();
-    } on FirebaseException catch (e) {
-      throw ServerException(e.message ?? 'Failed to fetch your bookings.');
-    }
-  }
 
+  // ... baaki saare methods wese hi rahenge ...
   @override
   Future<void> requestBooking(BookingModel booking) async {
     try {
@@ -59,6 +46,24 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
+  Future<List<BookingModel>> getBookingRequestsForTenant(
+    String tenantId,
+  ) async {
+    try {
+      final snapshot = await firestore
+          .collection('bookings')
+          .where('tenantId', isEqualTo: tenantId)
+          .orderBy('requestDate', descending: true)
+          .get();
+      return snapshot.docs
+          .map((doc) => BookingModel.fromFirestore(doc))
+          .toList();
+    } on FirebaseException catch (e) {
+      throw ServerException(e.message ?? 'Failed to fetch your bookings.');
+    }
+  }
+
+  @override
   Future<void> updateBookingStatus(
     String bookingId,
     BookingStatus newStatus,
@@ -69,6 +74,16 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       });
     } on FirebaseException catch (e) {
       throw ServerException(e.message ?? 'Failed to update booking status.');
+    }
+  }
+
+  // --- YEH NAYA METHOD ADD HUA HAI ---
+  @override
+  Future<void> cancelBooking(String bookingId) async {
+    try {
+      await firestore.collection('bookings').doc(bookingId).delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(e.message ?? 'Failed to cancel booking.');
     }
   }
 }

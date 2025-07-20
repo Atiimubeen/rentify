@@ -36,3 +36,5 @@ class BookingError extends BookingState {
   @override
   List<Object> get props => [message];
 }
+
+class BookingCancelled extends BookingState {}

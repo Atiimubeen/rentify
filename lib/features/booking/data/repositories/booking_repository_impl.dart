@@ -96,4 +96,18 @@ class BookingRepositoryImpl implements BookingRepository {
       return Left(ServerFailure('No internet connection.'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> cancelBooking(String bookingId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.cancelBooking(bookingId);
+        return const Right(null);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ServerFailure('No internet connection.'));
+    }
+  }
 }

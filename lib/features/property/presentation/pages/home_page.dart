@@ -25,7 +25,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     // Data fetch karne ka event ab initState mein bheja ja raha hai
-    // Yeh sirf ek baar chalega jab screen banegi
     context.read<PropertyBloc>().add(FetchAllPropertiesEvent());
   }
 
@@ -102,8 +101,8 @@ class _HomePageState extends State<HomePage> {
                 itemBuilder: (context, index) {
                   final property = state.properties[index];
                   final formatter = NumberFormat.currency(
-                    locale: 'en_IN',
-                    symbol: '₹',
+                    locale: 'en_PK',
+                    symbol: 'Rs. ',
                     decimalDigits: 0,
                   );
 
@@ -122,7 +121,7 @@ class _HomePageState extends State<HomePage> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) =>
-                                PropertyDetailPage(property: property),
+                                PropertyDetailPage(initialProperty: property),
                           ),
                         );
                       },

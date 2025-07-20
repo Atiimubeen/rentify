@@ -13,12 +13,15 @@ import 'package:rentify/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/pages/home_page.dart';
 import 'package:rentify/features/property/presentation/pages/landlord_dashboard_page.dart';
-
+// <<< YEH IMPORT ZAROORI HAI
 import 'injection_container.dart' as di;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  // Firebase ko initialize karte waqt options dena zaroori hai
+  await Firebase.initializeApp(
+    // <<< YEH LINE THEEK KI GAYI HAI
+  );
 
   // Push Notifications ki ijazat lena
   final fcm = FirebaseMessaging.instance;
@@ -65,6 +68,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, state) {
         if (state is Authenticated) {
           if (state.user.role == 'landlord') {
+            // --- YAHAN NAAM THEEK KIYA GAYA HAI ---
             return LandlordDashboardPage(user: state.user);
           }
           // Default for tenant

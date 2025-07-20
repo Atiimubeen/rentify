@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:dartz/dartz.dart';
 import 'package:rentify/core/error/exceptions.dart';
 import 'package:rentify/core/error/failure.dart';
@@ -17,6 +16,21 @@ class PropertyRepositoryImpl implements PropertyRepository {
     required this.remoteDataSource,
     required this.networkInfo,
   });
+  @override
+  Future<Either<Failure, PropertyEntity>> getPropertyById(
+    String propertyId,
+  ) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final property = await remoteDataSource.getPropertyById(propertyId);
+        return Right(property);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ServerFailure('No internet connection.'));
+    }
+  }
 
   @override
   Future<Either<Failure, void>> addProperty({
@@ -81,12 +95,31 @@ class PropertyRepositoryImpl implements PropertyRepository {
     }
   }
 
-  // --- YEH NAYA METHOD ADD HUA HAI ---
   @override
   Future<Either<Failure, void>> deleteProperty(String propertyId) async {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.deleteProperty(propertyId);
+        return const Right(null);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ServerFailure('No internet connection.'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updatePropertyAvailability(
+    String propertyId,
+    bool isAvailable,
+  ) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.updatePropertyAvailability(
+          propertyId,
+          isAvailable,
+        );
         return const Right(null);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));

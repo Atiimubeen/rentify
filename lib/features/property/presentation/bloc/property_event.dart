@@ -22,11 +22,20 @@ class FetchLandlordPropertiesEvent extends PropertyEvent {
 class AddNewPropertyEvent extends PropertyEvent {
   final PropertyEntity property;
   final List<File> images;
-
-  const AddNewPropertyEvent({required this.property, required this.images});
+  final String landlordId;
+  const AddNewPropertyEvent({
+    required this.property,
+    required this.images,
+    required this.landlordId,
+  });
 
   @override
-  List<Object> get props => [property, images];
+  List<Object> get props => [property, images, landlordId];
+}
+
+class FetchPropertyByIdEvent extends PropertyEvent {
+  final String propertyId;
+  const FetchPropertyByIdEvent(this.propertyId);
 }
 
 // --- YEH NAYA EVENT ADD HUA HAI ---

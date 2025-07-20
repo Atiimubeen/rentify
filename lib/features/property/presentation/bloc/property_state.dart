@@ -38,3 +38,8 @@ class PropertyError extends PropertyState {
   @override
   List<Object> get props => [message];
 }
+
+class PropertyDetailLoaded extends PropertyState {
+  final PropertyEntity property;
+  const PropertyDetailLoaded(this.property);
+}

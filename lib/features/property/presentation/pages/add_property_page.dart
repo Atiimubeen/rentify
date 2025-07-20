@@ -42,19 +42,16 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   Future<void> _pickImages() async {
-    // Allow picking up to 5 images
     if (_images.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You can select a maximum of 5 images.')),
       );
       return;
     }
-
     final pickedFiles = await _picker.pickMultiImage(
       imageQuality: 85,
       limit: 5 - _images.length,
     );
-
     if (pickedFiles.isNotEmpty) {
       setState(() {
         _images.addAll(pickedFiles.map((file) => File(file.path)));
@@ -72,7 +69,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       }
 
       final property = PropertyEntity(
-        id: const Uuid().v4(), // Generate a temporary unique ID
+        id: const Uuid().v4(),
         landlordId: widget.landlordId,
         title: _titleController.text.trim(),
         description: _descController.text.trim(),
@@ -81,13 +78,18 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         sizeSqft: double.tryParse(_sizeController.text.trim()) ?? 0.0,
         bedrooms: int.tryParse(_bedroomsController.text.trim()) ?? 0,
         bathrooms: int.tryParse(_bathroomsController.text.trim()) ?? 0,
-        imageUrls: [], // This will be filled by the data layer after upload
+        imageUrls: [],
         isAvailable: true,
         postedDate: DateTime.now(),
       );
 
+      // --- YEH LINE UPDATE HUI HAI ---
       context.read<PropertyBloc>().add(
-        AddNewPropertyEvent(property: property, images: _images),
+        AddNewPropertyEvent(
+          property: property,
+          images: _images,
+          landlordId: widget.landlordId, // landlordId saath bhejein
+        ),
       );
     }
   }
@@ -99,10 +101,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       body: BlocListener<PropertyBloc, PropertyState>(
         listener: (context, state) {
           if (state is PropertyAdded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Property Added Successfully!')),
-            );
-            // Go back to the dashboard
+            // Ab message yahan se nahi, balkay dashboard se aayega
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             }
@@ -119,6 +118,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ... baaki saare TextFormFields wese hi rahenge ...
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
@@ -140,7 +140,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 TextFormField(
                   controller: _rentController,
                   decoration: const InputDecoration(
-                    labelText: 'Rent per month (\$)',
+                    labelText: 'Rent per month (Rs.)',
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,

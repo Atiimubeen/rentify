@@ -21,4 +21,6 @@ abstract class BookingRepository {
     String bookingId,
     BookingStatus newStatus,
   );
+
+  Future<Either<Failure, void>> cancelBooking(String bookingId);
 }

@@ -6,8 +6,9 @@ import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
 import 'package:rentify/features/chat/presentation/pages/chat_page.dart';
+import 'package:rentify/features/property/domain/entities/property_entity.dart';
+import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
 
-// 1. Isay StatefulWidget banayein
 class MyBookingsPage extends StatefulWidget {
   final UserEntity tenant;
   const MyBookingsPage({super.key, required this.tenant});
@@ -20,7 +21,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   @override
   void initState() {
     super.initState();
-    // 2. Event ko initState ke andar call karein
     context.read<BookingBloc>().add(
       FetchBookingRequestsForTenantEvent(widget.tenant.uid),
     );
@@ -48,15 +48,40 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                 final booking = state.bookings[index];
                 return Card(
                   margin: const EdgeInsets.all(8),
-                  child: ListTile(
-                    title: Text(
-                      booking.propertyTitle,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: InkWell(
+                    onTap: () {
+                      final initialProperty = PropertyEntity(
+                        id: booking.propertyId,
+                        title: booking.propertyTitle,
+                        landlordId: booking.landlordId,
+                        isAvailable: false,
+                        description: '',
+                        rent: 0,
+                        address: '',
+                        sizeSqft: 0,
+                        bedrooms: 0,
+                        bathrooms: 0,
+                        imageUrls: [],
+                        postedDate: DateTime.now(),
+                      );
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PropertyDetailPage(
+                            initialProperty: initialProperty,
+                          ),
+                        ),
+                      );
+                    },
+                    child: ListTile(
+                      title: Text(
+                        booking.propertyTitle,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Status: ${booking.status.name.toUpperCase()}',
+                      ),
+                      trailing: _buildTrailingWidget(context, booking),
                     ),
-                    subtitle: Text(
-                      'Status: ${booking.status.name.toUpperCase()}',
-                    ),
-                    trailing: _buildTrailingWidget(context, booking),
                   ),
                 );
               },
@@ -68,7 +93,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     );
   }
 
-  // Helper function to build the trailing widget
   Widget? _buildTrailingWidget(BuildContext context, BookingEntity booking) {
     if (booking.status == BookingStatus.accepted) {
       return ElevatedButton(
@@ -78,16 +102,17 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
               builder: (_) => ChatPage(
                 currentUserId: widget.tenant.uid,
                 otherUserId: booking.landlordId,
+                booking: booking, // <<< YEH LINE THEEK KI GAYI HAI
               ),
             ),
           );
         },
         child: const Text('Chat'),
       );
-    } else if (booking.status == BookingStatus.rejected) {
+    } else if (booking.status == BookingStatus.rejected ||
+        booking.status == BookingStatus.cancelled) {
       return const Icon(Icons.cancel, color: Colors.red);
     }
-    // For pending status, show nothing special
     return null;
   }
 }

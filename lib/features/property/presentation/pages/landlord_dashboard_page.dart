@@ -3,22 +3,68 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
+
+import 'package:rentify/features/booking/presentation/pages/booking_requests_page.dart';
 import 'package:rentify/features/profile/presentation/pages/profile_page.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
 import 'package:rentify/features/property/presentation/pages/add_property_page.dart';
-import 'package:rentify/features/property/presentation/pages/booking_requests_page.dart';
 
-class LandlordDashboardPage extends StatelessWidget {
+class LandlordDashboardPage extends StatefulWidget {
   final UserEntity user;
   const LandlordDashboardPage({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
-    // Screen khultay hi landlord ki properties fetch karein
-    context.read<PropertyBloc>().add(FetchLandlordPropertiesEvent(user.uid));
+  State<LandlordDashboardPage> createState() => _LandlordDashboardPageState();
+}
 
+class _LandlordDashboardPageState extends State<LandlordDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Screen khultay hi landlord ki properties fetch karein
+    context.read<PropertyBloc>().add(
+      FetchLandlordPropertiesEvent(widget.user.uid),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String propertyId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: const Text(
+            'Are you sure you want to delete this property? This action cannot be undone.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                context.read<PropertyBloc>().add(
+                  DeletePropertyEvent(
+                    propertyId: propertyId,
+                    landlordId: widget.user.uid,
+                  ),
+                );
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Dashboard'),
@@ -27,25 +73,24 @@ class LandlordDashboardPage extends StatelessWidget {
             icon: const Icon(Icons.person),
             tooltip: 'My Profile',
             onPressed: () {
-              // LandlordDashboardPage mein 'user' pehle se mojood hai
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ProfilePage(user: user)),
+                MaterialPageRoute(
+                  builder: (_) => ProfilePage(user: widget.user),
+                ),
               );
             },
           ),
-          // --- YEH NAYA BUTTON ADD HUA HAI ---
           IconButton(
             icon: const Icon(Icons.notifications),
             tooltip: 'Booking Requests',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => BookingRequestsPage(landlord: user),
+                  builder: (_) => BookingRequestsPage(landlord: widget.user),
                 ),
               );
             },
           ),
-          // ------------------------------------
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign Out',
@@ -57,23 +102,23 @@ class LandlordDashboardPage extends StatelessWidget {
       ),
       body: BlocConsumer<PropertyBloc, PropertyState>(
         listener: (context, state) {
-          // Jab property add ho jaye to list refresh karein
-          if (state is PropertyAdded) {
-            context.read<PropertyBloc>().add(
-              FetchLandlordPropertiesEvent(user.uid),
-            );
+          if (state is PropertyAdded || state is PropertyDeleted) {
+            final message = state is PropertyAdded
+                ? 'Property Added Successfully!'
+                : 'Property Deleted Successfully!';
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Property list updated!'),
-                backgroundColor: Colors.green,
+              SnackBar(content: Text(message), backgroundColor: Colors.green),
+            );
+          } else if (state is PropertyError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
               ),
             );
           }
         },
         builder: (context, state) {
-          if (state is PropertyLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
           if (state is PropertyError) {
             return Center(child: Text('Error: ${state.message}'));
           }
@@ -83,39 +128,75 @@ class LandlordDashboardPage extends StatelessWidget {
                 child: Text('You have not added any properties yet.'),
               );
             }
-            // Yahan hum landlord ki properties list karengy
-            return ListView.builder(
-              itemCount: state.properties.length,
-              itemBuilder: (context, index) {
-                final property = state.properties[index];
-                return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    leading: property.imageUrls.isNotEmpty
-                        ? Image.network(
-                            property.imageUrls.first,
-                            width: 100,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(width: 100, color: Colors.grey[200]),
-                    title: Text(property.title),
-                    subtitle: Text(
-                      'Rent: \$${property.rent.toStringAsFixed(0)}/month',
-                    ),
-                  ),
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<PropertyBloc>().add(
+                  FetchLandlordPropertiesEvent(widget.user.uid),
                 );
               },
+              child: ListView.builder(
+                itemCount: state.properties.length,
+                itemBuilder: (context, index) {
+                  final property = state.properties[index];
+                  return Card(
+                    margin: const EdgeInsets.all(8.0),
+                    child: ListTile(
+                      leading: property.imageUrls.isNotEmpty
+                          ? Image.network(
+                              property.imageUrls.first,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey[200],
+                            ),
+                      title: Text(property.title),
+                      subtitle: Text(
+                        'Rent: Rs. ${property.rent.toStringAsFixed(0)}/month',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            property.isAvailable ? 'Available' : 'Booked',
+                            style: TextStyle(
+                              color: property.isAvailable
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              _showDeleteConfirmationDialog(
+                                context,
+                                property.id,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             );
           }
-          return const Center(child: Text('Loading your properties...'));
+          return const Center(child: CircularProgressIndicator());
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // AddPropertyPage par navigate karein
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AddPropertyPage(landlordId: user.uid),
+              builder: (_) => AddPropertyPage(landlordId: widget.user.uid),
             ),
           );
         },

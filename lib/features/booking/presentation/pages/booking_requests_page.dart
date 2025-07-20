@@ -6,6 +6,8 @@ import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
 import 'package:rentify/features/chat/presentation/pages/chat_page.dart';
+import 'package:rentify/features/property/domain/entities/property_entity.dart';
+import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
 
 class BookingRequestsPage extends StatefulWidget {
   final UserEntity landlord;
@@ -29,7 +31,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Requests')),
       body: BlocConsumer<BookingBloc, BookingState>(
-        // Listener ab bohat simple hai, sirf message dikhata hai
         listener: (context, state) {
           if (state is BookingStatusUpdated) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -38,6 +39,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 backgroundColor: Colors.blue,
               ),
             );
+            // BLoC ab khud hi list refresh kar raha hai
           } else if (state is BookingError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -71,27 +73,52 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                   return Card(
                     elevation: 3,
                     margin: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Request for: ${booking.propertyTitle}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                    child: InkWell(
+                      onTap: () {
+                        final initialProperty = PropertyEntity(
+                          id: booking.propertyId,
+                          title: booking.propertyTitle,
+                          landlordId: booking.landlordId,
+                          isAvailable: false,
+                          description: '',
+                          rent: 0,
+                          address: '',
+                          sizeSqft: 0,
+                          bedrooms: 0,
+                          bathrooms: 0,
+                          imageUrls: [],
+                          postedDate: DateTime.now(),
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PropertyDetailPage(
+                              initialProperty: initialProperty,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text('From: ${booking.tenantName}'),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Date: ${booking.requestDate.toLocal().toString().substring(0, 10)}',
-                          ),
-                          const Divider(height: 20),
-                          _buildStatusSection(context, booking),
-                        ],
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Request for: ${booking.propertyTitle}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('From: ${booking.tenantName}'),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Date: ${booking.requestDate.toLocal().toString().substring(0, 10)}',
+                            ),
+                            const Divider(height: 20),
+                            _buildStatusSection(context, booking),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -99,7 +126,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
               ),
             );
           }
-          // Baaki sab states ke liye (Initial, Loading)
           return const Center(child: CircularProgressIndicator());
         },
       ),
@@ -117,7 +143,8 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 UpdateBookingStatusEvent(
                   bookingId: booking.id,
                   newStatus: BookingStatus.rejected,
-                  landlordId: widget.landlord.uid, // landlordId pass karein
+                  landlordId: widget.landlord.uid,
+                  propertyId: booking.propertyId,
                 ),
               );
             },
@@ -130,7 +157,8 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 UpdateBookingStatusEvent(
                   bookingId: booking.id,
                   newStatus: BookingStatus.accepted,
-                  landlordId: widget.landlord.uid, // landlordId pass karein
+                  landlordId: widget.landlord.uid,
+                  propertyId: booking.propertyId,
                 ),
               );
             },
@@ -159,6 +187,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                   builder: (_) => ChatPage(
                     currentUserId: widget.landlord.uid,
                     otherUserId: booking.tenantId,
+                    booking: booking,
                   ),
                 ),
               );
@@ -167,9 +196,10 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
         ],
       );
     } else {
-      // Rejected
-      return const Text(
-        'Status: REJECTED',
+      // Cancelled or Rejected
+      final statusText = booking.status.name.toUpperCase();
+      return Text(
+        'Status: $statusText',
         style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
       );
     }

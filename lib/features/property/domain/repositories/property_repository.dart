@@ -5,7 +5,11 @@ import 'package:rentify/features/property/domain/entities/property_entity.dart';
 
 abstract class PropertyRepository {
   Future<Either<Failure, void>> deleteProperty(String propertyId);
-
+  Future<Either<Failure, void>> updatePropertyAvailability(
+    String propertyId,
+    bool isAvailable,
+  );
+  Future<Either<Failure, PropertyEntity>> getPropertyById(String propertyId);
   // Landlord ke liye: Nai property add karna
   Future<Either<Failure, void>> addProperty({
     required PropertyEntity property,
