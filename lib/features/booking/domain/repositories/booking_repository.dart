@@ -23,4 +23,5 @@ abstract class BookingRepository {
   );
 
   Future<Either<Failure, void>> cancelBooking(String bookingId);
+  Future<Either<Failure, void>> deleteBookingFromHistory(String bookingId);
 }

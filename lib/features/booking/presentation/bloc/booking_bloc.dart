@@ -1,9 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rentify/features/booking/domain/usecases/cancel_booking.dart';
+
 import 'package:rentify/features/booking/domain/usecases/get_booking_requests_for_landlord.dart';
 import 'package:rentify/features/booking/domain/usecases/get_booking_requests_for_tenant.dart';
 import 'package:rentify/features/booking/domain/usecases/request_booking.dart';
 import 'package:rentify/features/booking/domain/usecases/update_booking_status.dart';
+import 'package:rentify/features/booking/presentation/pages/delete_booking_from_history.dart';
 import 'package:rentify/features/property/domain/usecases/update_property_availability.dart';
 import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 import 'booking_event.dart';
@@ -15,7 +17,9 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final GetBookingRequestsForTenant _getBookingRequestsForTenant;
   final UpdateBookingStatus _updateBookingStatus;
   final UpdatePropertyAvailability _updatePropertyAvailability;
-  final CancelBooking _cancelBooking; // <<< YEH AB USECASE HAI, EVENT NAHI
+  final CancelBooking _cancelBooking;
+  final DeleteBookingFromHistory
+  _deleteBookingFromHistory; // <<< USE CASE ADDED
 
   BookingBloc({
     required RequestBooking requestBooking,
@@ -23,14 +27,16 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     required GetBookingRequestsForTenant getBookingRequestsForTenant,
     required UpdateBookingStatus updateBookingStatus,
     required UpdatePropertyAvailability updatePropertyAvailability,
-    required CancelBooking
-    cancelBooking, // <<< CONSTRUCTOR MEIN SAHI USECASE RECEIVE KAREIN
+    required CancelBooking cancelBooking,
+    required DeleteBookingFromHistory
+    deleteBookingFromHistory, // <<< ADDED TO CONSTRUCTOR
   }) : _requestBooking = requestBooking,
        _getBookingRequestsForLandlord = getBookingRequestsForLandlord,
        _getBookingRequestsForTenant = getBookingRequestsForTenant,
        _updateBookingStatus = updateBookingStatus,
        _updatePropertyAvailability = updatePropertyAvailability,
-       _cancelBooking = cancelBooking, // <<< SAHI USECASE KO INITIALIZE KAREIN
+       _cancelBooking = cancelBooking,
+       _deleteBookingFromHistory = deleteBookingFromHistory, // <<< INITIALIZED
        super(BookingInitial()) {
     on<SendBookingRequestEvent>(_onSendBookingRequest);
     on<FetchBookingRequestsForLandlordEvent>(
@@ -39,6 +45,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<FetchBookingRequestsForTenantEvent>(_onFetchBookingRequestsForTenant);
     on<UpdateBookingStatusEvent>(_onUpdateBookingStatus);
     on<TenantCancelBookingEvent>(_onTenantCancelBooking);
+    on<CancelBookingEvent>(_onCancelBooking);
+    on<DeleteBookingEvent>(_onDeleteBooking); // <<< EVENT HANDLER ADDED
   }
 
   void _onSendBookingRequest(
@@ -110,6 +118,38 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     });
   }
 
+  void _onCancelBooking(
+    CancelBookingEvent event,
+    Emitter<BookingState> emit,
+  ) async {
+    final statusUpdateResult = await _updateBookingStatus(
+      UpdateBookingStatusParams(
+        bookingId: event.booking.id,
+        newStatus: BookingStatus.cancelled,
+      ),
+    );
+
+    await statusUpdateResult.fold(
+      (failure) async => emit(BookingError(failure.message)),
+      (_) async {
+        final availabilityResult = await _updatePropertyAvailability(
+          UpdatePropertyAvailabilityParams(
+            propertyId: event.booking.propertyId,
+            isAvailable: true,
+          ),
+        );
+
+        availabilityResult.fold(
+          (failure) => emit(BookingError(failure.message)),
+          (_) {
+            emit(BookingStatusUpdated());
+            add(FetchBookingRequestsForLandlordEvent(event.booking.landlordId));
+          },
+        );
+      },
+    );
+  }
+
   void _onTenantCancelBooking(
     TenantCancelBookingEvent event,
     Emitter<BookingState> emit,
@@ -117,8 +157,26 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     final result = await _cancelBooking(CancelBookingParams(event.bookingId));
     result.fold((failure) => emit(BookingError(failure.message)), (_) {
       emit(BookingCancelled());
-      // Booking cancel hone ke baad, tenant ki list ko refresh karein
       add(FetchBookingRequestsForTenantEvent(event.tenantId));
+    });
+  }
+
+  // --- THIS NEW METHOD IS ADDED ---
+  void _onDeleteBooking(
+    DeleteBookingEvent event,
+    Emitter<BookingState> emit,
+  ) async {
+    final result = await _deleteBookingFromHistory(
+      DeleteBookingFromHistoryParams(event.bookingId),
+    );
+    result.fold((failure) => emit(BookingError(failure.message)), (_) {
+      emit(BookingDeleted());
+      // User ke role ke hisaab se sahi list ko refresh karein
+      if (event.userRole == 'landlord') {
+        add(FetchBookingRequestsForLandlordEvent(event.currentUserId));
+      } else {
+        add(FetchBookingRequestsForTenantEvent(event.currentUserId));
+      }
     });
   }
 }

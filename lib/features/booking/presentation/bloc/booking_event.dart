@@ -20,7 +20,6 @@ class FetchBookingRequestsForLandlordEvent extends BookingEvent {
   const FetchBookingRequestsForLandlordEvent(this.landlordId);
 }
 
-// --- YEH NAYA EVENT ADD HUA HAI ---
 // Tenant ke liye: Apni requests fetch karna
 class FetchBookingRequestsForTenantEvent extends BookingEvent {
   final String tenantId;
@@ -29,7 +28,6 @@ class FetchBookingRequestsForTenantEvent extends BookingEvent {
   @override
   List<Object> get props => [tenantId];
 }
-// ------------------------------------
 
 // Landlord ke liye: Status update karna
 class UpdateBookingStatusEvent extends BookingEvent {
@@ -46,11 +44,12 @@ class UpdateBookingStatusEvent extends BookingEvent {
   });
 
   @override
-  List<Object> get props => [bookingId, newStatus, landlordId];
+  List<Object> get props => [bookingId, newStatus, landlordId, propertyId]; // <<< YAHAN 'propertyId' ADD HUA HAI
 }
 
+// Landlord ke liye: Deal cancel karna
 class CancelBookingEvent extends BookingEvent {
-  final BookingEntity booking; // Poora booking object bhejengy
+  final BookingEntity booking;
 
   const CancelBookingEvent(this.booking);
 
@@ -58,6 +57,7 @@ class CancelBookingEvent extends BookingEvent {
   List<Object> get props => [booking];
 }
 
+// Tenant ke liye: Apni booking cancel karna
 class TenantCancelBookingEvent extends BookingEvent {
   final String bookingId;
   final String tenantId; // List refresh karne ke liye
@@ -69,4 +69,20 @@ class TenantCancelBookingEvent extends BookingEvent {
 
   @override
   List<Object> get props => [bookingId, tenantId];
+}
+
+class DeleteBookingEvent extends BookingEvent {
+  final String bookingId;
+  final String currentUserId; // List refresh karne ke liye
+  final String
+  userRole; // Pata lagane ke liye ke landlord ki list refresh karni hai ya tenant ki
+
+  const DeleteBookingEvent({
+    required this.bookingId,
+    required this.currentUserId,
+    required this.userRole,
+  });
+
+  @override
+  List<Object> get props => [bookingId, currentUserId, userRole];
 }

@@ -6,6 +6,7 @@ import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
 import 'package:rentify/features/chat/domain/entities/message_entity.dart';
 import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:rentify/features/chat/presentation/bloc/chat_event.dart';
+
 import 'package:rentify/features/chat/presentation/bloc/chat_state.dart';
 import 'package:uuid/uuid.dart';
 
@@ -93,7 +94,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         title: const Text('Chat'),
         actions: [
-          if (isLandlord)
+          if (isLandlord && widget.booking.status == BookingStatus.accepted)
             IconButton(
               icon: const Icon(Icons.cancel_schedule_send),
               tooltip: 'Cancel Deal',

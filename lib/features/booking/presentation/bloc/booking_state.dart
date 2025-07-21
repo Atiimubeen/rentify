@@ -38,3 +38,5 @@ class BookingError extends BookingState {
 }
 
 class BookingCancelled extends BookingState {}
+
+class BookingDeleted extends BookingState {}

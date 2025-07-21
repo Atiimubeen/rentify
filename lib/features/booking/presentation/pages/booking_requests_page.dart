@@ -4,9 +4,11 @@ import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
+import 'package:rentify/features/property/domain/entities/property_entity.dart';
+
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
 import 'package:rentify/features/chat/presentation/pages/chat_page.dart';
-import 'package:rentify/features/property/domain/entities/property_entity.dart';
+
 import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
 
 class BookingRequestsPage extends StatefulWidget {
@@ -26,20 +28,103 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     );
   }
 
+  // --- YEH METHOD AB showMenu ISTEMAL KARTA HAI ---
+  void _showBookingOptions(
+    BuildContext context,
+    BookingEntity booking,
+    RelativeRect position,
+  ) {
+    showMenu<String>(
+      context: context,
+      position: position,
+      items: <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'view_details',
+          child: ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text('View Property Details'),
+          ),
+        ),
+        if (booking.status == BookingStatus.accepted)
+          const PopupMenuItem<String>(
+            value: 'chat',
+            child: ListTile(
+              leading: Icon(Icons.chat),
+              title: Text('Chat with Tenant'),
+            ),
+          ),
+        if (booking.status == BookingStatus.rejected ||
+            booking.status == BookingStatus.cancelled)
+          const PopupMenuItem<String>(
+            value: 'clear_history',
+            child: ListTile(
+              leading: Icon(Icons.delete_forever_outlined, color: Colors.red),
+              title: Text(
+                'Clear from History',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+      ],
+    ).then((String? value) {
+      if (value == null) return; // Agar user ne menu se bahar click kiya
+
+      if (value == 'view_details') {
+        final initialProperty = PropertyEntity(
+          id: booking.propertyId,
+          title: booking.propertyTitle,
+          landlordId: booking.landlordId,
+          isAvailable: false,
+          description: '',
+          rent: 0,
+          address: '',
+          sizeSqft: 0,
+          bedrooms: 0,
+          bathrooms: 0,
+          imageUrls: [],
+          postedDate: DateTime.now(),
+        );
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                PropertyDetailPage(initialProperty: initialProperty),
+          ),
+        );
+      } else if (value == 'chat') {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatPage(
+              currentUserId: widget.landlord.uid,
+              otherUserId: booking.tenantId,
+              booking: booking,
+            ),
+          ),
+        );
+      } else if (value == 'clear_history') {
+        context.read<BookingBloc>().add(
+          DeleteBookingEvent(
+            bookingId: booking.id,
+            currentUserId: widget.landlord.uid,
+            userRole: 'landlord',
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Booking Requests')),
       body: BlocConsumer<BookingBloc, BookingState>(
         listener: (context, state) {
-          if (state is BookingStatusUpdated) {
+          if (state is BookingStatusUpdated || state is BookingDeleted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Status Updated! Refreshing list...'),
-                backgroundColor: Colors.blue,
+                content: Text('Action successful!'),
+                backgroundColor: Colors.green,
               ),
             );
-            // BLoC ab khud hi list refresh kar raha hai
           } else if (state is BookingError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -50,8 +135,8 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
           }
         },
         builder: (context, state) {
-          if (state is BookingError) {
-            return Center(child: Text('Error: ${state.message}'));
+          if (state is BookingLoading) {
+            return const Center(child: CircularProgressIndicator());
           }
           if (state is BookingRequestsLoaded) {
             if (state.bookings.isEmpty) {
@@ -70,33 +155,22 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 itemCount: state.bookings.length,
                 itemBuilder: (context, index) {
                   final booking = state.bookings[index];
-                  return Card(
-                    elevation: 3,
-                    margin: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: InkWell(
-                      onTap: () {
-                        final initialProperty = PropertyEntity(
-                          id: booking.propertyId,
-                          title: booking.propertyTitle,
-                          landlordId: booking.landlordId,
-                          isAvailable: false,
-                          description: '',
-                          rent: 0,
-                          address: '',
-                          sizeSqft: 0,
-                          bedrooms: 0,
-                          bathrooms: 0,
-                          imageUrls: [],
-                          postedDate: DateTime.now(),
-                        );
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PropertyDetailPage(
-                              initialProperty: initialProperty,
-                            ),
-                          ),
-                        );
-                      },
+                  return GestureDetector(
+                    // <<< InkWell ki jagah GestureDetector
+                    onLongPressStart: (details) {
+                      final position = RelativeRect.fromLTRB(
+                        details.globalPosition.dx,
+                        details.globalPosition.dy,
+                        MediaQuery.of(context).size.width -
+                            details.globalPosition.dx,
+                        MediaQuery.of(context).size.height -
+                            details.globalPosition.dy,
+                      );
+                      _showBookingOptions(context, booking, position);
+                    },
+                    child: Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 6.0),
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Column(
@@ -166,41 +240,18 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
           ),
         ],
       );
-    } else if (booking.status == BookingStatus.accepted) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Status: ACCEPTED',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.chat_bubble_outline, size: 18),
-            label: const Text('Chat'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ChatPage(
-                    currentUserId: widget.landlord.uid,
-                    otherUserId: booking.tenantId,
-                    booking: booking,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      );
     } else {
-      // Cancelled or Rejected
-      final statusText = booking.status.name.toUpperCase();
-      return Text(
-        'Status: $statusText',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Text(
+          'Status: ${booking.status.name.toUpperCase()}',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: booking.status == BookingStatus.accepted
+                ? Colors.green
+                : Colors.red,
+          ),
+        ),
       );
     }
   }

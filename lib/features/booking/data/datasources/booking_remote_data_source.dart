@@ -10,6 +10,7 @@ abstract class BookingRemoteDataSource {
   Future<void> updateBookingStatus(String bookingId, BookingStatus newStatus);
   // --- YEH NAYA METHOD ADD HUA HAI ---
   Future<void> cancelBooking(String bookingId);
+  Future<void> deleteBookingFromHistory(String bookingId);
 }
 
 class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
@@ -24,6 +25,17 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       await firestore.collection('bookings').add(booking.toFirestore());
     } on FirebaseException catch (e) {
       throw ServerException(e.message ?? 'Failed to send booking request.');
+    }
+  }
+
+  @override
+  Future<void> deleteBookingFromHistory(String bookingId) async {
+    try {
+      await firestore.collection('bookings').doc(bookingId).delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(
+        e.message ?? 'Failed to clear booking from history.',
+      );
     }
   }
 
