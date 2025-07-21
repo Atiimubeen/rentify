@@ -8,4 +8,8 @@ abstract class ChatRepository {
 
   // Ek specific chat room ke saare messages haasil karna (real-time)
   Stream<Either<Failure, List<MessageEntity>>> getMessages(String chatRoomId);
+  Future<Either<Failure, void>> deleteMessage(
+    String chatRoomId,
+    String messageId,
+  );
 }

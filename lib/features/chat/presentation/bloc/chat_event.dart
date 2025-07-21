@@ -21,3 +21,9 @@ class SendTextMessageEvent extends ChatEvent {
 
   const SendTextMessageEvent(this.message);
 }
+
+class DeleteMessageEvent extends ChatEvent {
+  final String chatRoomId;
+  final String messageId;
+  const DeleteMessageEvent({required this.chatRoomId, required this.messageId});
+}

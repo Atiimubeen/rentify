@@ -18,6 +18,7 @@ import 'package:rentify/features/booking/presentation/pages/delete_booking_from_
 import 'package:rentify/features/chat/data/datasources/chat_remote_data_source.dart';
 import 'package:rentify/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:rentify/features/chat/domain/repositories/chat_repository.dart';
+import 'package:rentify/features/chat/domain/usecases/delete_message.dart';
 import 'package:rentify/features/chat/domain/usecases/get_messages.dart';
 import 'package:rentify/features/chat/domain/usecases/send_message.dart';
 import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
@@ -88,7 +89,9 @@ Future<void> init() async {
       deleteBookingFromHistory: sl(),
     ),
   ); // <<< YEH LINE ADD HUI HAI
-  sl.registerFactory(() => ChatBloc(sendMessage: sl(), getMessages: sl()));
+  sl.registerFactory(
+    () => ChatBloc(sendMessage: sl(), getMessages: sl(), deleteMessage: sl()),
+  );
   sl.registerFactory(
     () => ProfileBloc(
       getUserProfile: sl(),
@@ -113,8 +116,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetBookingRequestsForLandlord(sl()));
   sl.registerLazySingleton(() => GetBookingRequestsForTenant(sl()));
   sl.registerLazySingleton(() => UpdateBookingStatus(sl()));
+  sl.registerLazySingleton(() => CancelBooking(sl()));
   sl.registerLazySingleton(
-    () => CancelBooking(sl()),
+    () => DeleteMessage(sl()),
   ); // <<< YEH LINE ADD HUI HAI
   sl.registerLazySingleton(() => SendMessage(sl()));
   sl.registerLazySingleton(() => GetMessages(sl()));

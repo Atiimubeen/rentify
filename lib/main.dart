@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProfileBloc>(create: (_) => di.sl<ProfileBloc>()),
       ],
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'Rentify',
         theme: ThemeData(
           primarySwatch: Colors.deepPurple,

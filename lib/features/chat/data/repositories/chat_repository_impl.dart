@@ -13,6 +13,19 @@ class ChatRepositoryImpl implements ChatRepository {
   ChatRepositoryImpl({required this.remoteDataSource});
 
   @override
+  Future<Either<Failure, void>> deleteMessage(
+    String chatRoomId,
+    String messageId,
+  ) async {
+    try {
+      await remoteDataSource.deleteMessage(chatRoomId, messageId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> sendMessage(MessageEntity message) async {
     try {
       final messageModel = MessageModel(

@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:rentify/core/error/exceptions.dart';
 import 'package:rentify/features/chat/data/models/message_model.dart';
 
 abstract class ChatRemoteDataSource {
   Future<void> sendMessage(MessageModel message);
   Stream<List<MessageModel>> getMessages(String chatRoomId);
+  Future<void> deleteMessage(String chatRoomId, String messageId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -13,15 +15,35 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   ChatRemoteDataSourceImpl({required this.firestore});
 
   @override
+  Future<void> deleteMessage(String chatRoomId, String messageId) async {
+    try {
+      await firestore
+          .collection('chat_rooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+    } on FirebaseException catch (e) {
+      throw ServerException(e.message ?? 'Failed to delete message.');
+    }
+  }
+
+  @override
   Future<void> sendMessage(MessageModel message) async {
     try {
-      // Create a unique chat room ID from sender and receiver IDs
-      // This ensures the same chat room is used regardless of who sends the first message
       List<String> ids = [message.senderId, message.receiverId];
-      ids.sort(); // Sort the IDs to ensure consistency
+      ids.sort();
       String chatRoomId = ids.join('_');
 
-      // Add the new message to the 'messages' subcollection of the chat room
+      // 1. Pehle chat room ka document banayein ya update karein
+      // Is se security rules kaam karengy aur hum chat list bhi bana saktay hain
+      await firestore.collection('chat_rooms').doc(chatRoomId).set({
+        'userIds': ids,
+        'lastMessage': message.text,
+        'lastMessageTimestamp': message.timestamp,
+      }, SetOptions(merge: true)); // merge: true taake purana data delete na ho
+
+      // 2. Ab message ko uske subcollection mein add karein
       await firestore
           .collection('chat_rooms')
           .doc(chatRoomId)
@@ -48,7 +70,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
             .toList();
       });
     } catch (e) {
-      // Return a stream that emits an error
       return Stream.error(ServerException('Failed to get messages.'));
     }
   }

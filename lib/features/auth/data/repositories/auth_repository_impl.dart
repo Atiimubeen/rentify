@@ -40,8 +40,6 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // ... Implement other methods (signIn, signInWithGoogle, etc.) in a similar way
-
   @override
   Future<Either<Failure, UserEntity>> signIn({
     required String email,
@@ -80,7 +78,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> signOut() async {
     try {
       await remoteDataSource.signOut();
-      return Right(null);
+      return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     }
@@ -88,40 +86,18 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final auth.User? firebaseUser = await remoteDataSource.getCurrentUser();
-        if (firebaseUser != null) {
-          // This assumes user data is in Firestore. You'd need to fetch it.
-          // For simplicity, we can create a basic entity here.
-          // In a real app, you'd fetch from Firestore using the uid.
-          return Right(
-            UserEntity(
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.displayName,
-            ),
-          );
-        } else {
-          return Right(null);
-        }
-      } on ServerException catch (e) {
-        return Left(ServerFailure(e.message));
-      }
-    } else {
-      // If offline, check auth state locally
-      final auth.User? firebaseUser = await remoteDataSource.getCurrentUser();
+    try {
+      final firebaseUser = await remoteDataSource.getCurrentUser();
       if (firebaseUser != null) {
-        return Right(
-          UserEntity(
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            name: firebaseUser.displayName,
-          ),
-        );
+        // Agar user login hai, to uska poora data Firestore se fetch karo
+        final userModel = await remoteDataSource.getUserData(firebaseUser.uid);
+        return Right(userModel);
       } else {
-        return Right(null);
+        // Agar koi user login nahi hai
+        return const Right(null);
       }
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     }
   }
 }
