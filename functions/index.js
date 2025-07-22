@@ -1,17 +1,12 @@
-// Naye tareeqe se functions import karna
 const {onDocumentCreated, onDocumentUpdated} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore} = require("firebase-admin/firestore");
 const {getMessaging} = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
 
-// Firebase Admin SDK ko initialize karna
 initializeApp();
 
-/**
- * FUNCTION 1: Jab nai booking request aaye to LANDLORD ko notification bhejna
- * (Naye v2 Syntax ke saath)
- */
+// FUNCTION 1: Jab nai booking request aaye to LANDLORD ko notification bhejna
 exports.sendBookingNotification = onDocumentCreated("bookings/{bookingId}", async (event) => {
   logger.info("New booking detected, starting notification function.");
 
@@ -31,7 +26,6 @@ exports.sendBookingNotification = onDocumentCreated("bookings/{bookingId}", asyn
     return;
   }
 
-  // Landlord ka fcmToken haasil karna
   const userDoc = await getFirestore().collection("users").doc(landlordId).get();
   if (!userDoc.exists) {
     logger.error(`User document not found for landlord: ${landlordId}`);
@@ -44,7 +38,6 @@ exports.sendBookingNotification = onDocumentCreated("bookings/{bookingId}", asyn
     return;
   }
 
-  // Notification ka message banayein
   const payload = {
     notification: {
       title: "New Booking Request! 🏡",
@@ -61,17 +54,13 @@ exports.sendBookingNotification = onDocumentCreated("bookings/{bookingId}", asyn
   }
 });
 
-/**
- * FUNCTION 2: Jab booking ka status update ho to TENANT ko notification bhejna
- * (Naye v2 Syntax ke saath)
- */
+// FUNCTION 2: Jab booking ka status update ho to TENANT ko notification bhejna
 exports.sendBookingStatusUpdateNotification = onDocumentUpdated("bookings/{bookingId}", async (event) => {
   logger.info("Booking update detected, starting notification function.");
 
   const beforeData = event.data.before.data();
   const afterData = event.data.after.data();
 
-  // Check karein ke sirf status hi change hua hai
   if (beforeData.status === afterData.status) {
     logger.info("Status not changed, no notification sent.");
     return;
@@ -79,14 +68,13 @@ exports.sendBookingStatusUpdateNotification = onDocumentUpdated("bookings/{booki
 
   const tenantId = afterData.tenantId;
   const propertyTitle = afterData.propertyTitle;
-  const newStatus = afterData.status.toUpperCase(); // e.g., "ACCEPTED"
+  const newStatus = afterData.status.toUpperCase();
 
   if (!tenantId) {
     logger.error("Error: Tenant ID missing.");
     return;
   }
 
-  // Tenant ka fcmToken haasil karna
   const userDoc = await getFirestore().collection("users").doc(tenantId).get();
   if (!userDoc.exists) {
     logger.error(`User document not found for tenant: ${tenantId}`);
@@ -99,7 +87,6 @@ exports.sendBookingStatusUpdateNotification = onDocumentUpdated("bookings/{booki
     return;
   }
 
-  // Notification ka message banayein
   const payload = {
     notification: {
       title: `Booking ${newStatus}! 🎉`,

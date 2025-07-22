@@ -50,6 +50,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   Future<void> _pickImages() async {
     final availableSlots = 5 - _images.length;
     if (availableSlots <= 0) {
+      // Yeh check abhi bhi zaroori hai, lekin UI behtar ho gayi hai
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You have already selected the maximum of 5 images.'),
@@ -68,18 +69,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     }
   }
 
-  // --- YEH FUNCTION AB BILKUL THEEK HAI ---
   void _submitForm() {
-    // Pichle steps pehle hi validate ho chukay hain.
-    // Humein sirf yeh check karna hai ke images select ki gayi hain ya nahi.
     if (_images.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select at least one image.')),
       );
-      // Aakhri step par focus karein taake user ko pata chale
-      setState(() {
-        _currentStep = 2;
-      });
+      setState(() => _currentStep = 2);
       return;
     }
 
@@ -124,14 +119,13 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
           }
         },
         child: Stepper(
+          type: StepperType.horizontal,
           currentStep: _currentStep,
           onStepContinue: () {
-            // Sirf mojooda step ke form ko validate karein
             if (_formKeys[_currentStep].currentState!.validate()) {
               if (_currentStep < 2) {
                 setState(() => _currentStep += 1);
               } else {
-                // Aakhri step par submit karein
                 _submitForm();
               }
             }
@@ -142,6 +136,40 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
             }
           },
           steps: [_buildStep1(), _buildStep2(), _buildStep3()],
+          controlsBuilder: (context, details) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: BlocBuilder<PropertyBloc, PropertyState>(
+                builder: (context, state) {
+                  if (state is PropertyLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return Row(
+                    children: [
+                      if (_currentStep == 2)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.add_home_work),
+                            onPressed: details.onStepContinue,
+                            label: const Text('SUBMIT'),
+                          ),
+                        )
+                      else
+                        ElevatedButton(
+                          onPressed: details.onStepContinue,
+                          child: const Text('NEXT'),
+                        ),
+                      if (_currentStep > 0)
+                        TextButton(
+                          onPressed: details.onStepCancel,
+                          child: const Text('BACK'),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
     );
@@ -149,7 +177,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   Step _buildStep1() {
     return Step(
-      title: const Text('Basic Details'),
+      title: const Text('Details'),
       isActive: _currentStep >= 0,
       state: _currentStep > 0 ? StepState.complete : StepState.indexed,
       content: Form(
@@ -182,7 +210,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   Step _buildStep2() {
     return Step(
-      title: const Text('Property Specs'),
+      title: const Text('Specs'),
       isActive: _currentStep >= 1,
       state: _currentStep > 1 ? StepState.complete : StepState.indexed,
       content: Form(
@@ -240,16 +268,19 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
         key: _formKeys[2],
         child: Column(
           children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.add_a_photo),
-              onPressed: _pickImages,
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              label: const Text('Pick Images (Max 5)'),
-            ),
-            const SizedBox(height: 16),
             _buildImagePreview(),
+            const SizedBox(height: 16),
+            // --- YEH LOGIC AB BEHTAR HAI ---
+            // Button sirf tab dikhao jab 5 se kam images hon
+            if (_images.length < 5)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.add_a_photo),
+                onPressed: _pickImages,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                label: Text(_images.isEmpty ? 'Add Photos' : 'Add More Photos'),
+              ),
           ],
         ),
       ),
@@ -278,44 +309,80 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   Widget _buildImagePreview() {
     if (_images.isEmpty) {
-      return const Text('No images selected yet.', textAlign: TextAlign.center);
+      return GestureDetector(
+        onTap: _pickImages,
+        child: Container(
+          height: 150,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 50,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(height: 8),
+              const Text('Tap to add photos'),
+            ],
+          ),
+        ),
+      );
     }
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: _images.length,
-      itemBuilder: (context, index) {
-        return Stack(
-          alignment: Alignment.topRight,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(_images[index].path),
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-              ),
-            ),
-            IconButton(
-              icon: const CircleAvatar(
-                backgroundColor: Colors.black54,
-                child: Icon(Icons.close, color: Colors.white, size: 16),
-              ),
-              onPressed: () {
-                setState(() {
-                  _images.removeAt(index);
-                });
-              },
-            ),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selected Images (${_images.length}/5)',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: _images.length,
+          itemBuilder: (context, index) {
+            return Stack(
+              alignment: Alignment.topRight,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(_images[index].path),
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.black54,
+                    child: Icon(Icons.close, color: Colors.white, size: 16),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _images.removeAt(index);
+                    });
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

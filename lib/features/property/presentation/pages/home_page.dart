@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; // <<< YEH IMPORT ADD HUA HAI
 import 'package:intl/intl.dart';
+import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_bloc.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
 import 'package:rentify/features/auth/presenatation/bloc/auth_state.dart';
 
 import 'package:rentify/features/booking/presentation/pages/my_bookings_page.dart';
 import 'package:rentify/features/profile/presentation/pages/profile_page.dart';
-
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
@@ -31,8 +31,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // AuthBloc se user ka naam haasil karein
-    final user = (context.read<AuthBloc>().state as Authenticated).user;
+    final authState = context.watch<AuthBloc>().state;
+    UserEntity? currentUser;
+    if (authState is Authenticated) {
+      currentUser = authState.user;
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -40,7 +45,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Hello, ${user.name?.split(' ').first ?? ''}! 👋',
+          'Hello, ${currentUser?.name?.split(' ').first ?? ''}! 👋',
           style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -51,18 +56,26 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.person_outline, color: Colors.black),
             tooltip: 'My Profile',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ProfilePage(user: user)),
-              );
+              if (currentUser != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(user: currentUser!),
+                  ),
+                );
+              }
             },
           ),
           IconButton(
             icon: const Icon(Icons.bookmark_border, color: Colors.black),
             tooltip: 'My Bookings',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => MyBookingsPage(tenant: user)),
-              );
+              if (currentUser != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MyBookingsPage(tenant: currentUser!),
+                  ),
+                );
+              }
             },
           ),
           IconButton(
@@ -120,6 +133,7 @@ class _HomePageState extends State<HomePage> {
                                       child: _buildPropertyCard(
                                         context,
                                         property,
+                                        currentUser!,
                                       ),
                                     ),
                                   ),
@@ -159,7 +173,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPropertyCard(BuildContext context, PropertyEntity property) {
+  Widget _buildPropertyCard(
+    BuildContext context,
+    PropertyEntity property,
+    UserEntity currentUser,
+  ) {
     final formatter = NumberFormat.currency(
       locale: 'en_PK',
       symbol: 'Rs. ',
@@ -174,7 +192,10 @@ class _HomePageState extends State<HomePage> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => PropertyDetailPage(initialProperty: property),
+              builder: (_) => PropertyDetailPage(
+                initialProperty: property,
+                currentUserId: currentUser.uid, // <<< YEH LINE AB THEEK HAI
+              ),
             ),
           );
         },

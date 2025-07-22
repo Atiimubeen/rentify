@@ -7,15 +7,16 @@ import 'package:rentify/features/auth/presenatation/bloc/auth_event.dart';
 
 import 'package:rentify/features/booking/presentation/pages/booking_requests_page.dart';
 import 'package:rentify/features/profile/presentation/pages/profile_page.dart';
-
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
 import 'package:rentify/features/property/presentation/pages/add_property_page.dart';
+import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
 
 class LandlordDashboardPage extends StatefulWidget {
   final UserEntity user;
+
   const LandlordDashboardPage({super.key, required this.user});
 
   @override
@@ -268,68 +269,83 @@ class _LandlordDashboardPageState extends State<LandlordDashboardPage> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: property.imageUrls.isNotEmpty
-                ? Image.network(property.imageUrls.first, fit: BoxFit.cover)
-                : Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.house,
-                      size: 50,
-                      color: Colors.grey,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PropertyDetailPage(
+                initialProperty: property,
+                currentUserId: widget.user.uid,
+              ),
+            ),
+          );
+        },
+        child: Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: property.imageUrls.isNotEmpty
+                  ? Image.network(property.imageUrls.first, fit: BoxFit.cover)
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.house,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
                     ),
-                  ),
-          ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
             ),
-            title: Text(
-              property.title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              'Rent: Rs. ${property.rent.toStringAsFixed(0)}/month',
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: property.isAvailable
-                        ? Colors.green.shade100
-                        : Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    property.isAvailable ? 'Available' : 'Booked',
-                    style: TextStyle(
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              title: Text(
+                property.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Rent: Rs. ${property.rent.toStringAsFixed(0)}/month',
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
                       color: property.isAvailable
-                          ? Colors.green.shade800
-                          : Colors.orange.shade800,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                          ? Colors.green.shade100
+                          : Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      property.isAvailable ? 'Available' : 'Booked',
+                      style: TextStyle(
+                        color: property.isAvailable
+                            ? Colors.green.shade800
+                            : Colors.orange.shade800,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-                  onPressed: () {
-                    _showDeleteConfirmationDialog(context, property.id);
-                  },
-                ),
-              ],
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Colors.red.shade400,
+                    ),
+                    onPressed: () {
+                      _showDeleteConfirmationDialog(context, property.id);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

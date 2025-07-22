@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,9 +23,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    // Controllers ko initial user data se set karein
     _nameController = TextEditingController(text: widget.user.name);
     _phoneController = TextEditingController(text: widget.user.phone);
-    // Fetch the latest profile data
+    // Hamesha latest profile data fetch karein
     context.read<ProfileBloc>().add(FetchProfileEvent(widget.user.uid));
   }
 
@@ -47,8 +47,9 @@ class _ProfilePageState extends State<ProfilePage> {
       uid: widget.user.uid,
       name: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
-      email: widget.user.email, // Email cannot be changed
-      role: widget.user.role, // Role cannot be changed
+      // Yeh fields change nahi ho saktin
+      email: widget.user.email,
+      role: widget.user.role,
       photoUrl: widget.user.photoUrl,
     );
     context.read<ProfileBloc>().add(UpdateProfileEvent(updatedUser));
@@ -57,7 +58,12 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           if (state is ProfileUpdateSuccess) {
@@ -84,69 +90,85 @@ class _ProfilePageState extends State<ProfilePage> {
           UserEntity? currentUser;
           if (state is ProfileLoaded) {
             currentUser = state.user;
-            // Update controllers if the state has new data
-            _nameController.text = currentUser.name ?? '';
-            _phoneController.text = currentUser.phone ?? '';
+            // State se anay walay naye data ke saath controllers ko update karein
+            if (_nameController.text != currentUser.name) {
+              _nameController.text = currentUser.name ?? '';
+            }
+            if (_phoneController.text != currentUser.phone) {
+              _phoneController.text = currentUser.phone ?? '';
+            }
           } else {
-            currentUser = widget.user; // Show initial data
+            // Agar state loaded nahi, to initial data dikhayein
+            currentUser = widget.user;
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
                 Stack(
+                  alignment: Alignment.bottomRight,
                   children: [
                     CircleAvatar(
                       radius: 60,
+                      backgroundColor: Colors.grey.shade300,
                       backgroundImage: (currentUser?.photoUrl != null)
                           ? NetworkImage(currentUser!.photoUrl!)
                           : null,
                       child: (currentUser?.photoUrl == null)
-                          ? const Icon(Icons.person, size: 60)
+                          ? Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Colors.grey.shade600,
+                            )
                           : null,
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt),
-                        onPressed: _pickImage,
+                    Material(
+                      color: Theme.of(context).primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: _pickImage,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                TextField(
+                const SizedBox(height: 32),
+                _buildTextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Full Name',
+                  icon: Icons.person_outline,
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                _buildTextField(
                   controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Phone Number',
+                  icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                _buildTextField(
                   readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: currentUser?.email ?? 'N/A',
-                    border: const OutlineInputBorder(),
-                  ),
+                  initialValue: currentUser?.email ?? 'N/A',
+                  label: 'Email',
+                  icon: Icons.email_outlined,
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _updateProfile,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text('Save Changes'),
                 ),
@@ -154,6 +176,29 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    TextEditingController? controller,
+    String? initialValue,
+    required String label,
+    required IconData icon,
+    bool readOnly = false,
+    TextInputType? keyboardType,
+  }) {
+    return TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      readOnly: readOnly,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: readOnly ? Colors.grey[200] : Colors.white,
       ),
     );
   }

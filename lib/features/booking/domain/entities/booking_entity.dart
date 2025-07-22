@@ -13,7 +13,8 @@ class BookingEntity extends Equatable {
   final DateTime requestDate;
   final BookingStatus status;
   final String? visitDate; // Optional: Can be for a visit or direct booking
-  final String? visitTime; // Optional
+  final String? visitTime;
+  final String? propertyImageUrl; // Optional
 
   const BookingEntity({
     required this.id,
@@ -27,6 +28,7 @@ class BookingEntity extends Equatable {
     required this.status,
     this.visitDate,
     this.visitTime,
+    this.propertyImageUrl,
   });
 
   @override

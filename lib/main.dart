@@ -8,7 +8,7 @@ import 'package:rentify/features/auth/presenatation/bloc/auth_state.dart';
 import 'package:rentify/features/auth/presenatation/pages/sign_in_page.dart';
 
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
-import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
+
 import 'package:rentify/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/pages/home_page.dart';
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<PropertyBloc>(create: (_) => di.sl<PropertyBloc>()),
         BlocProvider<BookingBloc>(create: (_) => di.sl<BookingBloc>()),
-        BlocProvider<ChatBloc>(create: (_) => di.sl<ChatBloc>()),
+
         BlocProvider<ProfileBloc>(create: (_) => di.sl<ProfileBloc>()),
       ],
       child: MaterialApp(

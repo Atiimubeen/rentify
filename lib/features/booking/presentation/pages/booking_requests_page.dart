@@ -4,12 +4,13 @@ import 'package:rentify/features/auth/domain/entities/user_entity.dart';
 import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
-import 'package:rentify/features/property/domain/entities/property_entity.dart';
-
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
+import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:rentify/features/chat/presentation/pages/chat_page.dart';
-
+import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
+import 'package:rentify/injection_container.dart'
+    as di; // <<< YEH IMPORT ZAROORI HAI
 
 class BookingRequestsPage extends StatefulWidget {
   final UserEntity landlord;
@@ -28,7 +29,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     );
   }
 
-  // --- YEH METHOD AB showMenu ISTEMAL KARTA HAI ---
   void _showBookingOptions(
     BuildContext context,
     BookingEntity booking,
@@ -37,6 +37,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     showMenu<String>(
       context: context,
       position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: <PopupMenuEntry<String>>[
         const PopupMenuItem<String>(
           value: 'view_details',
@@ -49,12 +50,11 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
           const PopupMenuItem<String>(
             value: 'chat',
             child: ListTile(
-              leading: Icon(Icons.chat),
+              leading: Icon(Icons.chat_outlined),
               title: Text('Chat with Tenant'),
             ),
           ),
-        if (booking.status == BookingStatus.rejected ||
-            booking.status == BookingStatus.cancelled)
+        if (booking.status != BookingStatus.pending)
           const PopupMenuItem<String>(
             value: 'clear_history',
             child: ListTile(
@@ -67,7 +67,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
           ),
       ],
     ).then((String? value) {
-      if (value == null) return; // Agar user ne menu se bahar click kiya
+      if (value == null) return;
 
       if (value == 'view_details') {
         final initialProperty = PropertyEntity(
@@ -86,17 +86,22 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
         );
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                PropertyDetailPage(initialProperty: initialProperty),
+            builder: (_) => PropertyDetailPage(
+              initialProperty: initialProperty,
+              currentUserId: widget.landlord.uid,
+            ),
           ),
         );
       } else if (value == 'chat') {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ChatPage(
-              currentUserId: widget.landlord.uid,
-              otherUserId: booking.tenantId,
-              booking: booking,
+            builder: (_) => BlocProvider(
+              create: (context) => di.sl<ChatBloc>(),
+              child: ChatPage(
+                currentUserId: widget.landlord.uid,
+                otherUserId: booking.tenantId,
+                booking: booking,
+              ),
             ),
           ),
         );
@@ -135,14 +140,12 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
           }
         },
         builder: (context, state) {
-          if (state is BookingLoading) {
-            return const Center(child: CircularProgressIndicator());
+          if (state is BookingError) {
+            return Center(child: Text('Error: ${state.message}'));
           }
           if (state is BookingRequestsLoaded) {
             if (state.bookings.isEmpty) {
-              return const Center(
-                child: Text('You have no new booking requests.'),
-              );
+              return _buildEmptyState();
             }
             return RefreshIndicator(
               onRefresh: () async {
@@ -156,7 +159,6 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 itemBuilder: (context, index) {
                   final booking = state.bookings[index];
                   return GestureDetector(
-                    // <<< InkWell ki jagah GestureDetector
                     onLongPressStart: (details) {
                       final position = RelativeRect.fromLTRB(
                         details.globalPosition.dx,
@@ -168,33 +170,7 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                       );
                       _showBookingOptions(context, booking, position);
                     },
-                    child: Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Request for: ${booking.propertyTitle}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text('From: ${booking.tenantName}'),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Date: ${booking.requestDate.toLocal().toString().substring(0, 10)}',
-                            ),
-                            const Divider(height: 20),
-                            _buildStatusSection(context, booking),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: _buildRequestCard(booking),
                   );
                 },
               ),
@@ -206,12 +182,85 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_off_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Booking Requests',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'New requests from tenants will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestCard(BookingEntity booking) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              booking.propertyTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.person_outline, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  'Request from: ${booking.tenantName},',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Date: ${booking.requestDate.toLocal().toString().substring(0, 10)}',
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            _buildStatusSection(context, booking),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusSection(BuildContext context, BookingEntity booking) {
     if (booking.status == BookingStatus.pending) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          TextButton(
+          OutlinedButton(
             onPressed: () {
               context.read<BookingBloc>().add(
                 UpdateBookingStatusEvent(
@@ -222,7 +271,8 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
                 ),
               );
             },
-            child: const Text('Reject', style: TextStyle(color: Colors.red)),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reject'),
           ),
           const SizedBox(width: 8),
           ElevatedButton(
@@ -241,18 +291,68 @@ class _BookingRequestsPageState extends State<BookingRequestsPage> {
         ],
       );
     } else {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: Text(
-          'Status: ${booking.status.name.toUpperCase()}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: booking.status == BookingStatus.accepted
-                ? Colors.green
-                : Colors.red,
-          ),
-        ),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildStatusChip(booking.status),
+          if (booking.status == BookingStatus.accepted)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.chat_bubble_outline, size: 18),
+              label: const Text('Chat'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider(
+                      create: (context) => di.sl<ChatBloc>(),
+                      child: ChatPage(
+                        currentUserId: widget.landlord.uid,
+                        otherUserId: booking.tenantId,
+                        booking: booking,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       );
     }
+  }
+
+  Widget _buildStatusChip(BookingStatus status) {
+    Color color;
+    String text;
+    switch (status) {
+      case BookingStatus.accepted:
+        color = Colors.green;
+        text = 'ACCEPTED';
+        break;
+      case BookingStatus.rejected:
+        color = Colors.red;
+        text = 'REJECTED';
+        break;
+      case BookingStatus.cancelled:
+        color = Colors.orange;
+        text = 'CANCELLED';
+        break;
+      default:
+        color = Colors.grey;
+        text = 'PENDING';
+    }
+    return Chip(
+      label: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      backgroundColor: color,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+    );
   }
 }

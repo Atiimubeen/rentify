@@ -8,15 +8,23 @@ import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
+
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/presentation/bloc/property_bloc.dart';
 import 'package:rentify/features/property/presentation/bloc/property_event.dart';
 import 'package:rentify/features/property/presentation/bloc/property_state.dart';
+
 import 'package:uuid/uuid.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyEntity initialProperty;
-  const PropertyDetailPage({super.key, required this.initialProperty});
+  final String currentUserId;
+
+  const PropertyDetailPage({
+    super.key,
+    required this.initialProperty,
+    required this.currentUserId,
+  });
 
   @override
   State<PropertyDetailPage> createState() => _PropertyDetailPageState();
@@ -33,6 +41,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isOwnerViewing =
+        widget.currentUserId == widget.initialProperty.landlordId;
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.initialProperty.title)),
       body: BlocBuilder<PropertyBloc, PropertyState>(
@@ -118,7 +129,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
           return const Center(child: Text('Loading property details...'));
         },
       ),
-      bottomNavigationBar: _buildBookingButton(),
+      bottomNavigationBar: !isOwnerViewing ? _buildBookingButton() : null,
     );
   }
 

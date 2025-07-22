@@ -5,9 +5,13 @@ import 'package:rentify/features/booking/domain/entities/booking_entity.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_bloc.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_event.dart';
 import 'package:rentify/features/booking/presentation/bloc/booking_state.dart';
+
+import 'package:rentify/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:rentify/features/chat/presentation/pages/chat_page.dart';
 import 'package:rentify/features/property/domain/entities/property_entity.dart';
 import 'package:rentify/features/property/presentation/pages/property_detail_page.dart';
+
+import 'package:rentify/injection_container.dart' as di;
 
 class MyBookingsPage extends StatefulWidget {
   final UserEntity tenant;
@@ -22,11 +26,10 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   void initState() {
     super.initState();
     context.read<BookingBloc>().add(
-      FetchBookingRequestsForTenantEvent(widget.tenant.uid),
+      FetchBookingRequestsForLandlordEvent(widget.tenant.uid),
     );
   }
 
-  // --- YEH METHOD AB showMenu ISTEMAL KARTA HAI ---
   void _showBookingOptions(
     BuildContext context,
     BookingEntity booking,
@@ -35,6 +38,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     showMenu<String>(
       context: context,
       position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: <PopupMenuEntry<String>>[
         const PopupMenuItem<String>(
           value: 'view_details',
@@ -47,7 +51,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           const PopupMenuItem<String>(
             value: 'chat',
             child: ListTile(
-              leading: Icon(Icons.chat),
+              leading: Icon(Icons.chat_outlined),
               title: Text('Chat with Landlord'),
             ),
           ),
@@ -62,8 +66,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
               ),
             ),
           ),
-        if (booking.status == BookingStatus.rejected ||
-            booking.status == BookingStatus.cancelled)
+        if (booking.status != BookingStatus.pending)
           const PopupMenuItem<String>(
             value: 'clear_history',
             child: ListTile(
@@ -95,17 +98,22 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
         );
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                PropertyDetailPage(initialProperty: initialProperty),
+            builder: (_) => PropertyDetailPage(
+              initialProperty: initialProperty,
+              currentUserId: widget.tenant.uid,
+            ),
           ),
         );
       } else if (value == 'chat') {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ChatPage(
-              currentUserId: widget.tenant.uid,
-              otherUserId: booking.landlordId,
-              booking: booking,
+            builder: (_) => BlocProvider(
+              create: (context) => di.sl<ChatBloc>(),
+              child: ChatPage(
+                currentUserId: widget.tenant.uid,
+                otherUserId: booking.landlordId,
+                booking: booking,
+              ),
             ),
           ),
         );
@@ -151,63 +159,158 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           }
         },
         builder: (context, state) {
-          if (state is BookingLoading) {
-            return const Center(child: CircularProgressIndicator());
+          if (state is BookingError) {
+            return Center(child: Text('Error: ${state.message}'));
           }
           if (state is BookingRequestsLoaded) {
             if (state.bookings.isEmpty) {
-              return const Center(child: Text('You have no bookings yet.'));
+              return _buildEmptyState();
             }
-            return ListView.builder(
-              itemCount: state.bookings.length,
-              itemBuilder: (context, index) {
-                final booking = state.bookings[index];
-                return GestureDetector(
-                  onLongPressStart: (details) {
-                    final position = RelativeRect.fromLTRB(
-                      details.globalPosition.dx,
-                      details.globalPosition.dy,
-                      MediaQuery.of(context).size.width -
-                          details.globalPosition.dx,
-                      MediaQuery.of(context).size.height -
-                          details.globalPosition.dy,
-                    );
-                    _showBookingOptions(context, booking, position);
-                  },
-                  child: Card(
-                    margin: const EdgeInsets.all(8),
-                    child: ListTile(
-                      title: Text(
-                        booking.propertyTitle,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        'Status: ${booking.status.name.toUpperCase()}',
-                      ),
-                      trailing: _getTrailingIcon(booking),
-                    ),
-                  ),
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<BookingBloc>().add(
+                  FetchBookingRequestsForTenantEvent(widget.tenant.uid),
                 );
               },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8.0),
+                itemCount: state.bookings.length,
+                itemBuilder: (context, index) {
+                  final booking = state.bookings[index];
+                  return GestureDetector(
+                    onLongPressStart: (details) {
+                      final position = RelativeRect.fromLTRB(
+                        details.globalPosition.dx,
+                        details.globalPosition.dy,
+                        MediaQuery.of(context).size.width -
+                            details.globalPosition.dx,
+                        MediaQuery.of(context).size.height -
+                            details.globalPosition.dy,
+                      );
+                      _showBookingOptions(context, booking, position);
+                    },
+                    child: _buildBookingCard(booking),
+                  );
+                },
+              ),
             );
           }
-          return const Center(child: Text("Loading your bookings..."));
+          return const Center(child: CircularProgressIndicator());
         },
       ),
     );
   }
 
-  Widget _getTrailingIcon(BookingEntity booking) {
-    switch (booking.status) {
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.bookmark_remove_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Bookings Yet',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your requested and accepted bookings will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingCard(BookingEntity booking) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: (booking.propertyImageUrl != null)
+              ? Image.network(
+                  booking.propertyImageUrl!,
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  width: 70,
+                  height: 70,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.house_outlined),
+                ),
+        ),
+        title: Text(
+          booking.propertyTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: _buildStatusChip(booking.status),
+        trailing: (booking.status == BookingStatus.accepted)
+            ? IconButton(
+                icon: const Icon(Icons.chat_bubble_outline),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (context) => di.sl<ChatBloc>(),
+                        child: ChatPage(
+                          currentUserId: widget.tenant.uid,
+                          otherUserId: booking.landlordId,
+                          booking: booking,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(BookingStatus status) {
+    Color color;
+    String text;
+    IconData icon;
+    switch (status) {
       case BookingStatus.accepted:
-        return const Icon(Icons.check_circle, color: Colors.green);
+        color = Colors.green;
+        text = 'Accepted';
+        icon = Icons.check_circle_outline;
+        break;
       case BookingStatus.rejected:
+        color = Colors.red;
+        text = 'Rejected';
+        icon = Icons.highlight_off;
+        break;
       case BookingStatus.cancelled:
-        return const Icon(Icons.cancel, color: Colors.red);
-      case BookingStatus.pending:
-        return const Icon(Icons.hourglass_top, color: Colors.orange);
+        color = Colors.orange;
+        text = 'Cancelled';
+        icon = Icons.cancel_outlined;
+        break;
       default:
-        return const SizedBox.shrink();
+        color = Colors.blue;
+        text = 'Pending';
+        icon = Icons.hourglass_top_outlined;
     }
+    return Chip(
+      avatar: Icon(icon, color: color, size: 18),
+      label: Text(
+        text,
+        style: TextStyle(color: color, fontWeight: FontWeight.bold),
+      ),
+      backgroundColor: color.withOpacity(0.1),
+      side: BorderSide(color: color.withOpacity(0.5)),
+    );
   }
 }
